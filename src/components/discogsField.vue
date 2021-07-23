@@ -1,40 +1,20 @@
 <template>
   <div>
-    <!-- <k-input ref="input" :id="_uid" v-bind="$props" :value="inputValue" :media="media" theme="field" v-on="$listeners" @setMedia="setMedia" @startLoading="startLoading">
-        <div class="k-discogs-infos" slot="icon">
-            <div class="k-discogs-status">
-                <span v-if="loading" class="k-discogs-status-loading"><span class="loader"></span></span>
-                <span v-else-if="hasMedia" class="k-discogs-status-synced">{{ $t('discogs.synced') }} <span class="checkmark"></span></span>
-                <span v-else-if="syncFailed" class="k-discogs-status-failed">{{ $t('discogs.failed') }} <span class="cross"></span></span>
-            </div>
-            <k-button v-if="link"
-                      :icon="icon"
-                      :link="inputValue"
-                      :tooltip="$t('open')"
-                      class="k-input-icon-button"
-                      tabindex="-1"
-                      target="_blank"
-                      rel="noopener" />
-        </div>
-
-    </k-input> -->
     <div class="k-field" data-type="discogs">
       <k-autocomplete ref="autocomplete" :options="options" @select="select">
         <input type="text" placeholder="Search release…" @input="onInput"/>
-        <!-- <div data-type="discogs" class="k-input">
-          <span class="k-input-element">
-
-          </span>
-        </div> -->
       </k-autocomplete>
     </div>
     <div class="preview" v-if="hasMedia">
         <div class="preview-content">
-          <img :src="media.cover_image" width="100%">
-        </div>
-        <div class="media-title">
-          <div>{{ media.title }}</div>
-          <div>{{ media.year }}</div>
+          <div class="preview-content">
+            <img :src="media.cover_image" width="100%">
+          </div>
+          <div class="preview-background"></div>
+          <div class="preview-title">
+            <div>{{ media.title }}</div>
+            <div>{{ media.year }}</div>
+          </div>
         </div>
     </div>
   </div>
@@ -47,6 +27,8 @@ export default {
     extends: 'k-text-field',
     data() {
         return {
+            timeoutId: null,
+            debounceDelay: 300,
             options: [],
             media: Object,
             loading: false,
@@ -56,9 +38,9 @@ export default {
         provider: String,
     },
     created() {
-        if(this.value && this.value.media && this.hasLength(this.value.media)) {
-            this.media = this.value.media
-        }
+      if(this.value && this.value.media && this.hasLength(this.value.media)) {
+          this.media = this.value.media
+      }
     },
     computed: {
         hasMedia() {
@@ -74,33 +56,37 @@ export default {
     methods: {
         onInput(e) {
             const value = e.target.value
-            if(!this.isValidInput(value)) {
-                // this.media = {}
-                this.emitInput(value)
-                return false;
-            }
+            clearTimeout(this.timeoutId)
+            this.timeoutId = setTimeout(() => {
+              if(!this.isValidInput(value)) {
+                  // this.media = {}
+                  this.emitInput(value)
+                  return false;
+              }
 
-            this.$emit('startLoading')
-            this.$api
-                .get('kirby-discogs/get-data', { search: value })
-                .then(response => {
-                    if(response['status'] == 'success' && response['data']) {
-                        let results = JSON.parse(response['data'])
-                        results = results.results.map(el => ({...el, text: `${el.title} (${el.year})`}))
-                        this.options = results
-                        console.log(this.options)
-                        this.$refs.autocomplete.search(value)
-                    }
-                    else {
-                        // this.media = {}
-                    }
+              this.$emit('startLoading')
+              this.$api
+                  .get('kirby-discogs/get-data', { search: value })
+                  .then(response => {
+                      if(response['status'] == 'success' && response['data']) {
+                          let results = JSON.parse(response['data'])
+                          results = results.results.map(el => ({...el, text: `${el.title} (${el.year})`}))
+                          this.options = results
+                          setTimeout(function() {
+                            this.$refs.autocomplete.search(value)
+                          }.bind(this), 100);
+                      }
+                      else {
+                          // this.media = {}
+                      }
 
 
-                })
-                .catch(error => {
-                    // this.media = {}
-                    this.emitInput(value)
-                })
+                  })
+                  .catch(error => {
+                      // this.media = {}
+                      this.emitInput(value)
+                  })
+            }, this.debounceDelay);
         },
         emitInput(value) {
             this.$emit("input", { input: value, media: this.media });

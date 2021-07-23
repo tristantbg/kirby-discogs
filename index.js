@@ -8974,6 +8974,8 @@ var _default = {
   extends: 'k-text-field',
   data: function data() {
     return {
+      timeoutId: null,
+      debounceDelay: 300,
       options: [],
       media: Object,
       loading: false
@@ -9003,34 +9005,38 @@ var _default = {
       var _this = this;
 
       var value = e.target.value;
+      clearTimeout(this.timeoutId);
+      this.timeoutId = setTimeout(function () {
+        if (!_this.isValidInput(value)) {
+          // this.media = {}
+          _this.emitInput(value);
 
-      if (!this.isValidInput(value)) {
-        // this.media = {}
-        this.emitInput(value);
-        return false;
-      }
-
-      this.$emit('startLoading');
-      this.$api.get('kirby-discogs/get-data', {
-        search: value
-      }).then(function (response) {
-        if (response['status'] == 'success' && response['data']) {
-          var results = JSON.parse(response['data']);
-          results = results.results.map(function (el) {
-            return _objectSpread(_objectSpread({}, el), {}, {
-              text: "".concat(el.title, " (").concat(el.year, ")")
-            });
-          });
-          _this.options = results;
-          console.log(_this.options);
-
-          _this.$refs.autocomplete.search(value);
-        } else {// this.media = {}
+          return false;
         }
-      }).catch(function (error) {
-        // this.media = {}
-        _this.emitInput(value);
-      });
+
+        _this.$emit('startLoading');
+
+        _this.$api.get('kirby-discogs/get-data', {
+          search: value
+        }).then(function (response) {
+          if (response['status'] == 'success' && response['data']) {
+            var results = JSON.parse(response['data']);
+            results = results.results.map(function (el) {
+              return _objectSpread(_objectSpread({}, el), {}, {
+                text: "".concat(el.title, " (").concat(el.year, ")")
+              });
+            });
+            _this.options = results;
+            setTimeout(function () {
+              this.$refs.autocomplete.search(value);
+            }.bind(_this), 100);
+          } else {// this.media = {}
+          }
+        }).catch(function (error) {
+          // this.media = {}
+          _this.emitInput(value);
+        });
+      }, this.debounceDelay);
     },
     emitInput: function emitInput(value) {
       this.$emit("input", {
@@ -9101,13 +9107,19 @@ exports.default = _default;
     _vm.hasMedia
       ? _c("div", { staticClass: "preview" }, [
           _c("div", { staticClass: "preview-content" }, [
-            _c("img", { attrs: { src: _vm.media.cover_image, width: "100%" } })
-          ]),
-          _vm._v(" "),
-          _c("div", { staticClass: "media-title" }, [
-            _c("div", [_vm._v(_vm._s(_vm.media.title))]),
+            _c("div", { staticClass: "preview-content" }, [
+              _c("img", {
+                attrs: { src: _vm.media.cover_image, width: "100%" }
+              })
+            ]),
             _vm._v(" "),
-            _c("div", [_vm._v(_vm._s(_vm.media.year))])
+            _c("div", { staticClass: "preview-background" }),
+            _vm._v(" "),
+            _c("div", { staticClass: "preview-title" }, [
+              _c("div", [_vm._v(_vm._s(_vm.media.title))]),
+              _vm._v(" "),
+              _c("div", [_vm._v(_vm._s(_vm.media.year))])
+            ])
           ])
         ])
       : _vm._e()
@@ -9294,7 +9306,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "60798" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "51740" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
