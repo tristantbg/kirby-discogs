@@ -1,9 +1,15 @@
 <template>
   <div>
     <div class="k-field" data-type="discogs">
-      <k-autocomplete ref="autocomplete" :options="options" @select="select">
-        <input type="text" placeholder="Search release…" @input="onInput"/>
-      </k-autocomplete>
+      <div class="k-discogs-infos">
+        <k-autocomplete ref="autocomplete" :options="options" @select="select">
+          <input type="text" :placeholder="$t('discogs.placeholder')" @input="onInput" autocomplete="off"/>
+        </k-autocomplete>
+        <div class="k-discogs-status">
+          <span v-if="loading" class="k-discogs-status-loading"><span class="loader"></span></span>
+          <span v-else-if="hasMedia" class="k-discogs-status-clear" @click="clearMedia">{{ $t('discogs.clear') }} <span class="cross"></span></span>
+        </div>
+      </div>
     </div>
     <div class="preview" v-if="hasMedia">
         <div class="preview-content">
@@ -64,7 +70,7 @@ export default {
                   return false;
               }
 
-              this.$emit('startLoading')
+              this.startLoading()
               this.$api
                   .get('kirby-discogs/get-data', { search: value })
                   .then(response => {
@@ -74,6 +80,7 @@ export default {
                           this.options = results
                           setTimeout(function() {
                             this.$refs.autocomplete.search(value)
+                            this.stopLoading()
                           }.bind(this), 100);
                       }
                       else {
@@ -83,7 +90,7 @@ export default {
 
                   })
                   .catch(error => {
-                      // this.media = {}
+                      this.media = {}
                       this.emitInput(value)
                   })
             }, this.debounceDelay);
@@ -96,6 +103,10 @@ export default {
           console.log(item);
           this.media = item
           this.emitInput(item.text)
+        },
+        clearMedia() {
+          this.media = {}
+          this.emitInput('')
         },
         setMedia(media) {
             this.media = media
