@@ -1,6 +1,7 @@
 <?php
 
 @include_once __DIR__ . '/vendor/autoload.php';
+@include_once __DIR__ . '/lib/functions.php';
 
 Kirby::plugin('tristantbg/discogs', [
     'options' => array(
