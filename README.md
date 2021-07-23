@@ -28,7 +28,7 @@ The plugin provides a `discogs` field that you can include in any blueprint:
 ```yaml
 fields:
   discogs:
-    label: Embed
+    label: Discogs
     type: discogs
 ```
 
